@@ -1,0 +1,6 @@
+{
+  "timesteps": 50000,
+  "episodes": 1150,
+  "mean_score_last_20": 0.0,
+  "max_score": 1
+}

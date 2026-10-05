@@ -1,0 +1,10 @@
+# CNN Flappy Bird demo (Python 3.11 recommended)
+gymnasium>=0.29.0,<1.0
+flappy-bird-env==0.1.6
+pygame>=2.5.0
+numpy>=1.25.0,<2.0
+torch
+matplotlib
+pillow
+fastapi
+uvicorn

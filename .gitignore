@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+dashboard/node_modules/
+dashboard/.next/
+cnn_flappy/data/
+*.npz
