@@ -97,6 +97,14 @@ python -m cnn_flappy.compare --episodes 10
 
 Output: `cnn_flappy/outputs/compare_agents.png`
 
+### 6b) Dual race — two birds, who wins?
+
+```powershell
+python -m cnn_flappy.dual_play --episodes 5 --render
+```
+
+Or use the dashboard panel **Dual race — two Flappy Birds** after starting `api_server`.
+
 ## One-command pipeline
 
 ```powershell
@@ -126,6 +134,18 @@ cnn_flappy/
 1. **CNN** turns stacked frames into action scores (BC) or Q-values (DQN).
 2. **Recording** builds a dataset of good flaps for a warm start.
 3. **RL** keeps playing; the replay buffer stores new transitions; TD loss updates the **same CNN** so scores rise over episodes (see `dqn_progress.png`).
+
+## AWS EC2 training
+
+One-shot script + instance guide:
+
+- **[EC2.md](./EC2.md)** — recommended `g4dn.xlarge`, ideal steps, demo BC vs DQN  
+- Script: `cnn_flappy/scripts/ec2_setup_and_train.sh`
+
+```bash
+chmod +x cnn_flappy/scripts/ec2_setup_and_train.sh
+./cnn_flappy/scripts/ec2_setup_and_train.sh
+```
 
 ## Live UI (Pygame + Next.js / shadcn)
 

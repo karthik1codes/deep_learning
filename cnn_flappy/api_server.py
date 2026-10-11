@@ -3,14 +3,19 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import threading
 from typing import Any, Optional
+
+# Headless charts from worker threads (avoids Tk "main thread" crashes).
+os.environ.setdefault("MPLBACKEND", "Agg")
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from cnn_flappy.compare import DEFAULT_BC, DEFAULT_DQN, model_status, run_comparison
+from cnn_flappy.dual_play import dual_race
 from cnn_flappy.live_trainer import trainer
 
 app = FastAPI(title="CNN Flappy Live API", version="1.0.0")
@@ -43,6 +48,13 @@ class CompareRequest(BaseModel):
     include_baselines: bool = True
     bc_path: str = DEFAULT_BC
     dqn_path: str = DEFAULT_DQN
+
+
+class DualRaceRequest(BaseModel):
+    episodes: int = Field(default=5, ge=1, le=30)
+    bc_path: str = DEFAULT_BC
+    dqn_path: str = DEFAULT_DQN
+    frame_every: int = Field(default=2, ge=1, le=10)
 
 
 @app.get("/api/health")
@@ -120,6 +132,28 @@ def get_compare():
         }
 
 
+@app.post("/api/dual/start")
+def dual_start(body: DualRaceRequest):
+    started = dual_race.start(
+        episodes=body.episodes,
+        bc_path=body.bc_path,
+        dqn_path=body.dqn_path,
+        frame_every=body.frame_every,
+    )
+    return {"started": started, "state": dual_race.get_state()}
+
+
+@app.post("/api/dual/stop")
+def dual_stop():
+    dual_race.stop()
+    return {"stopped": True, "state": dual_race.get_state()}
+
+
+@app.get("/api/dual")
+def dual_get():
+    return dual_race.get_state()
+
+
 @app.websocket("/ws/live")
 async def ws_live(websocket: WebSocket):
     await websocket.accept()
@@ -127,6 +161,17 @@ async def ws_live(websocket: WebSocket):
         while True:
             await websocket.send_json(trainer.get_state())
             await asyncio.sleep(0.1)  # ~10 Hz
+    except WebSocketDisconnect:
+        return
+
+
+@app.websocket("/ws/dual")
+async def ws_dual(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            await websocket.send_json(dual_race.get_state())
+            await asyncio.sleep(0.1)
     except WebSocketDisconnect:
         return
 

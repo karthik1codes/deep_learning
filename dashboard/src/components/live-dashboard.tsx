@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { DualRacePanel } from "@/components/dual-race";
 import { ModelComparisonPanel } from "@/components/model-comparison";
 
 const API_BASE =
@@ -298,6 +299,7 @@ export function LiveDashboard() {
         </Card>
       </div>
 
+      <DualRacePanel apiOnline={connected} />
       <ModelComparisonPanel apiOnline={connected} />
     </div>
   );

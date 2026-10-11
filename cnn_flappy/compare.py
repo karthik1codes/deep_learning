@@ -8,9 +8,9 @@ import io
 from pathlib import Path
 from typing import Any, Optional
 
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from PIL import Image, ImageDraw, ImageFont
 
 from cnn_flappy.cnn_model import FlappyCNN, select_device
 from cnn_flappy.env_utils import heuristic_action, make_env, run_episode
@@ -76,26 +76,61 @@ def model_status(
 
 
 def _chart_b64(results: list[dict[str, Any]]) -> str:
-    names = [r["name"] for r in results]
-    means = [r["mean_score"] for r in results]
-    colors = ["#9ecae1", "#a1d99b", "#fdae6b", "#e6550d"]
-    plt.figure(figsize=(7, 3.8))
-    bars = plt.bar(names, means, color=colors[: len(names)])
-    plt.ylabel("Mean pipes passed")
-    plt.title("BC-CNN vs DQN-CNN (and baselines)")
-    for bar, m in zip(bars, means):
-        plt.text(
-            bar.get_x() + bar.get_width() / 2,
-            m,
-            f"{m:.2f}",
-            ha="center",
-            va="bottom",
-            fontsize=9,
-        )
-    plt.tight_layout()
+    """Thread-safe bar chart via Pillow (no Matplotlib/Tk)."""
+    if not results:
+        return ""
+
+    width, height = 720, 380
+    margin_l, margin_r, margin_t, margin_b = 70, 30, 50, 70
+    img = Image.new("RGB", (width, height), (255, 255, 255))
+    draw = ImageDraw.Draw(img)
+    try:
+        font = ImageFont.truetype("arial.ttf", 14)
+        font_title = ImageFont.truetype("arial.ttf", 16)
+    except OSError:
+        font = ImageFont.load_default()
+        font_title = font
+
+    colors = {
+        "random": (158, 202, 225),
+        "heuristic": (161, 217, 155),
+        "BC-CNN": (253, 174, 107),
+        "DQN-CNN": (230, 85, 13),
+    }
+
+    means = [float(r["mean_score"]) for r in results]
+    max_mean = max(means) if means else 1.0
+    if max_mean <= 0:
+        max_mean = 1.0
+
+    plot_w = width - margin_l - margin_r
+    plot_h = height - margin_t - margin_b
+    n = len(results)
+    gap = 20
+    bar_w = max(20, (plot_w - gap * (n + 1)) // max(n, 1))
+
+    draw.text((margin_l, 16), "BC-CNN vs DQN-CNN (and baselines)", fill=(30, 30, 30), font=font_title)
+    draw.text((12, margin_t + plot_h // 2), "Mean\nscore", fill=(80, 80, 80), font=font)
+
+    # axes
+    draw.line(
+        [(margin_l, margin_t), (margin_l, margin_t + plot_h), (margin_l + plot_w, margin_t + plot_h)],
+        fill=(60, 60, 60),
+        width=2,
+    )
+
+    for i, r in enumerate(results):
+        x0 = margin_l + gap + i * (bar_w + gap)
+        bar_h = int((r["mean_score"] / max_mean) * (plot_h - 10))
+        y0 = margin_t + plot_h - bar_h
+        color = colors.get(r["name"], (120, 120, 120))
+        draw.rectangle([x0, y0, x0 + bar_w, margin_t + plot_h], fill=color)
+        label = f"{r['mean_score']:.2f}"
+        draw.text((x0 + 4, max(margin_t, y0 - 18)), label, fill=(20, 20, 20), font=font)
+        draw.text((x0, margin_t + plot_h + 10), r["name"][:10], fill=(40, 40, 40), font=font)
+
     buf = io.BytesIO()
-    plt.savefig(buf, format="png", dpi=120)
-    plt.close()
+    img.save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode("ascii")
 
 
@@ -140,7 +175,7 @@ def run_comparison(
         skipped.append(f"DQN missing: {dqn_path}")
 
     chart = _chart_b64(results) if results else ""
-    if save_plot and results:
+    if save_plot and chart:
         out = Path(save_plot)
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_bytes(base64.b64decode(chart))

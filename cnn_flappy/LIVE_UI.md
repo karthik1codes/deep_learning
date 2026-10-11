@@ -39,6 +39,14 @@ API helpers:
 - `GET /api/models` — checkpoint availability
 - `POST /api/compare` — start evaluation (`{"episodes": 10}`)
 - `GET /api/compare` — poll status + results
+- `POST /api/dual/start` — side-by-side BC vs DQN race
+- `GET /api/dual` / `WS /ws/dual` — live dual frames + winner
+
+Pygame dual window (local):
+
+```powershell
+python -m cnn_flappy.dual_play --episodes 5 --render
+```
 
 ## 3) Optional: custom Pygame UI
 
