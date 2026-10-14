@@ -135,6 +135,14 @@ cnn_flappy/
 2. **Recording** builds a dataset of good flaps for a warm start.
 3. **RL** keeps playing; the replay buffer stores new transitions; TD loss updates the **same CNN** so scores rise over episodes (see `dqn_progress.png`).
 
+## Colab / Kaggle (resume checkpoints)
+
+Mid-training PyTorch checkpoints so idle session kills do not wipe progress:
+
+- **[KAGGLE_COLAB.md](./KAGGLE_COLAB.md)** — clone/install cells, `--resume`, chunked DQN
+- BC: `--ckpt-every 5 --resume`
+- DQN: `--ckpt-every 10000 --resume` (same final `--timesteps`)
+
 ## AWS EC2 training
 
 One-shot script + instance guide:
@@ -162,4 +170,5 @@ Side-by-side gameplay and live training metrics:
 
 - `flappy-bird-env` needs `render_mode="rgb_array"`; this project wraps it so frames are not blank.
 - Training without a display is fine. Use `--render` only when watching play.
-- Longer `--timesteps` (50k–200k) usually gives clearer RL gains.
+- Longer `--timesteps` (300k–500k on GPU) usually gives clearer RL gains.
+- If a notebook session dies, re-run with `--resume` (see KAGGLE_COLAB.md).
