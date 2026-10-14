@@ -91,10 +91,33 @@ def main():
     )
     args = parser.parse_args()
 
-    data = np.load(args.data)
-    obs = data["observations"]
-    actions = data["actions"]
-    print(f"[bc] loaded {len(actions)} samples, obs={obs.shape}")
+    data_path = Path(args.data)
+    if not data_path.exists():
+        raise SystemExit(
+            f"[bc] demos not found: {data_path.resolve()}\n"
+            f"     Re-run recording first, e.g.\n"
+            f"     python -m cnn_flappy.record_data --episodes 1000 "
+            f"--policy heuristic --out {args.data}"
+        )
+
+    if data_path.is_dir():
+        shard_files = sorted(data_path.glob("shard_*.npz"))
+        if not shard_files:
+            raise SystemExit(f"[bc] no shard_*.npz files in {data_path.resolve()}")
+        obs_parts, act_parts = [], []
+        for sp in shard_files:
+            with np.load(sp) as d:
+                obs_parts.append(np.asarray(d["observations"], dtype=np.float32))
+                act_parts.append(np.asarray(d["actions"]))
+            print(f"[bc] loaded shard {sp.name}")
+        obs = np.concatenate(obs_parts, axis=0)
+        actions = np.concatenate(act_parts, axis=0)
+        del obs_parts, act_parts
+    else:
+        data = np.load(data_path)
+        obs = np.asarray(data["observations"], dtype=np.float32)
+        actions = np.asarray(data["actions"])
+    print(f"[bc] loaded {len(actions)} samples, obs={obs.shape} from {data_path.resolve()}")
 
     device = select_device()
     in_channels = int(obs.shape[1])

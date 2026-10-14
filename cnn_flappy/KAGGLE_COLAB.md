@@ -33,7 +33,9 @@ import flappy_bird_env, gymnasium, numpy, torch
 print("ok", "numpy", numpy.__version__, "cuda", torch.cuda.is_available())
 
 # 4) Pipeline (checkpoints auto-save during training)
-!python -m cnn_flappy.record_data --episodes 1000 --policy heuristic --out cnn_flappy/data/demos.npz
+# Recording uses float16 shards then merges — avoids OOM after 1000 eps on Kaggle/Colab.
+!python -m cnn_flappy.record_data --episodes 1000 --policy heuristic --shard-every 100 --out cnn_flappy/data/demos.npz
+!ls -lh cnn_flappy/data/demos.npz
 !python -m cnn_flappy.train_bc --epochs 40 --batch-size 128 --ckpt-every 5 --data cnn_flappy/data/demos.npz --out cnn_flappy/checkpoints/bc_cnn.pt
 !python -m cnn_flappy.train_rl --timesteps 500000 --warmup 1000 --batch-size 64 --ckpt-every 10000 --init-bc cnn_flappy/checkpoints/bc_cnn.pt --out cnn_flappy/checkpoints/dqn_cnn.pt
 !python -m cnn_flappy.compare --episodes 30
